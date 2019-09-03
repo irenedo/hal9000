@@ -1,0 +1,7 @@
+---
+config:
+  slack_signing_secret: 1f8c270cdf9402bb47290173eac9c8bf
+  slack_api_key: xoxb-682629837170-727987161603-FZm9zfLaWSjCoSvPWdbTSvpl
+modules:
+  weather:
+    owappid: 603ff328fea64060f7ae52f777594618

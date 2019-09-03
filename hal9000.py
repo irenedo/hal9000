@@ -1,72 +1,61 @@
 from slackeventsapi import SlackEventAdapter
 from slack import WebClient
-import bottasks
-import reactions
-import os
+from yaml import safe_load
+import importlib
+import sys
+
+
+with open("config.yml", 'r') as stream:
+    try:
+        cfg = safe_load(stream)
+    except yaml.YAMLError as exc:
+        print(exc)
+
+config = cfg['config']
+sys.path.append('./packages')
+pkg = {mod:importlib.import_module(mod) for mod in cfg['modules'].keys()}
 
 # Our app's Slack Event Adapter for receiving actions via the Events API
-slack_events_adapter = SlackEventAdapter(os.environ["SLACK_SIGNING_SECRET"], "/slack/events")
+slack_events_adapter = SlackEventAdapter(config['slack_signing_secret'], "/slack/events")
 
 # Create a SlackClient for your bot to use for Web API requests
-client = WebClient(os.environ["SLACK_API_KEY"], timeout=30)
+client = WebClient(config['slack_api_key'], timeout=30)
+
 
 # Example responder to greetings
 @slack_events_adapter.on("message")
 def handle_message(event_data):
     message = event_data["event"]
     # If the incoming message contains "hi", then respond with a "Hello" message
-    if message.get("subtype") is not None:
+    if message.get("subtype") is not None and message.get('channel_type') is not 'im':
         pass
-
     else:
-        if "hi" in message.get('text').lower() or "hello" in message.get('text').lower():
+        command = message.get('text').split(" ")[0].lower()
+        if command in pkg.keys():
             user = message['user']
             channel = message["channel"]
-            reactions.write_message(message, client, "Hi <@{}>!".format(user),
-                                    threaded=False,
-                                    channel_id=channel)
-        elif "cpu" in message.get('text').lower():
-            channel = message['channel']
-            cpu = bottasks.get_cpu()
-            reactions.write_message(message, client, "CPU usage: *{}%*".format(cpu),
-                                    threaded=False,
-                                    channel_id=channel)
-
-        elif "mem" in message.get('text').lower():
-            channel = message['channel']
-            mem = bottasks.get_mem()
-            reactions.write_message(message, client, "Memory usage: *{}%*".format(mem),
-                                    threaded=False,
-                                    channel_id=channel)
-        elif "weather" in message.get ('text').lower():
-            channel = message['channel']
-            city = message['text'].split(' ')[1]
-            weather = bottasks.get_weather(city)
-            reactions.write_message(message, client, "Current temperature: *{}°C*\n"
-                                                     "Pressure: *{}Pa*\n"
-                                                     "Humidity: *{}%*\n"
-                                                     "Maximum temperature today: *{}°C*\n"
-                                                     "Minimum temperature today: *{}°C*".format(weather['current'],
-                                                                                                weather['pressure'],
-                                                                                                weather['humidity'],
-                                                                                                weather['temp_max'],
-                                                                                                weather['temp_min']),
-                                    threaded=False,
-                                    channel_id=channel)
+            thread_ts = message.get('ts')
+            ret = pkg[command].command(client,message.get('text').split(" ")[1:])
+            if ret['block']:
+                client.chat_postMessage(
+                    channel=channel,
+                    block=ret['message'][0],
+                    thread_ts=thread_ts
+                )                
+            else:
+                client.chat_postMessage(
+                    channel=channel,
+                    text=ret['message'][0],
+                    thread_ts=thread_ts
+                ) 
         else:
-            channel = message['channel']
-            reactions.write_message(message, client, "Sorry, I didn't understand you :thinking_face:",
-                                    threaded=False,
-                                    channel_id=channel)
-
-# Example reaction emoji echo
-@slack_events_adapter.on("reaction_added")
-def reaction_added(event_data):
-    event = event_data["event"]
-    emoji = event["reaction"]
-    channel = event["item"]["channel"]
-    text = ":%s:" % emoji
-    client.chat_postMessage(channel=channel, text=text)
+            thread_ts = message.get('ts')
+            channel = message.get('channel')
+            client.chat_postMessage(
+                channel=channel,
+                text="Sorry, I didn't understand you :thinking_face:",
+                thread_ts=thread_ts
+            )
 
 # Error events
 @slack_events_adapter.on("error")
@@ -77,4 +66,3 @@ def error_handler(err):
 # Once we have our event listeners configured, we can start the
 # Flask server with the default `/events` endpoint on port 3000
 slack_events_adapter.start(host='0.0.0.0', port=3000)
-
