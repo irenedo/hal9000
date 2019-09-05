@@ -1,6 +1,7 @@
 from slackeventsapi import SlackEventAdapter
 from slack import WebClient
 from yaml import safe_load, YAMLError
+from json import dumps
 import importlib
 import sys
 
@@ -40,29 +41,30 @@ def handle_message(event_data):
         pass
     else:
         command = message.get('text').split(" ")[0].lower()
+        user = message.get('user')
+        channel = message.get('channel')
+        thread_ts = message.get('ts')
         if command in pkg.keys():
-            user = message['user']
-            channel = message["channel"]
-            thread_ts = message.get('ts')
             try:
                 ret = pkg[command].command(message.get('text').split(" ")[1:])
             except Exception as err:
                 print("Problem calling the module {}\n{}".format(command,err))
             else:
                 if ret['error']:
-                    mes = client.chat_postMessage(
+                    client.chat_postMessage(
                         channel=channel,
-                        text="Error executing command: *{}*".format(ret['message']),
+                        text="Error:\n{}".format(ret['message']),
                     )
                 else:
                     if ret['block']:
-                        mes = client.chat_postMessage(
+                        import pdb
+                        client.chat_postMessage(
                             channel=channel,
-                            block=ret['message'][0],
+                            blocks=dumps(ret['message']),
                             thread_ts=thread_ts
                         )                
                     else:
-                        mes = client.chat_postMessage(
+                        client.chat_postMessage(
                             channel=channel,
                             text=ret['message'][0],
                             thread_ts=thread_ts
@@ -72,13 +74,19 @@ def handle_message(event_data):
                         client.reactions_add(
                           channel=channel,
                           name=reaction,
-                          timestamp=mes['message']['ts']
+                          timestamp=thread_ts
                         )
         else:
             channel = message.get('channel')
+            thread_ts = message.get('ts')
             client.chat_postMessage(
                 channel=channel,
-                text="Sorry, I didn't understand you :thinking_face:"
+                text="Sorry, I didn't understand you"
+            )
+            client.reactions_add(
+              channel=channel,
+              name="thinking_face",
+              timestamp=thread_ts
             )
 
 # Error events
