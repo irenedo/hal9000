@@ -1,10 +1,10 @@
 version: '3'
 services:
-  sbot:
+  hal9000:
     build: .
     container_name: hal9000
     image: renedo/hal9000
     ports:
-    - "3000:3000"
-    env_file:
-    - ./.env
+      - "3000:3000"
+    volumes:
+      - ./config:/hal9000/config

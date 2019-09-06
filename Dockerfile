@@ -1,11 +1,14 @@
 FROM alpine:latest
 
-RUN apk add --no-cache python3 py3-psutil && \
-    pip3 install slackclient slackeventsapi
+COPY hal9000.py requirements.txt /hal9000/
+COPY ./packages /hal9000/packages
 
-ADD *.py /hal9000/
+RUN apk add --no-cache python3 && \
+    pip3 install -r /hal9000/requirements.txt
 
 USER nobody
+
+WORKDIR /hal9000
 
 EXPOSE 3000
 

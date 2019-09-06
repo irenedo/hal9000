@@ -3,7 +3,7 @@ from yaml import safe_load
 from sys import argv
 
 try:
-    with open("config.yml", 'r') as stream:
+    with open("./config/config.yml", 'r') as stream:
         try:
             cfg = safe_load(stream)
         except YAMLError as err:
@@ -15,12 +15,17 @@ except Exception as err:
 
 config = cfg['modules']['weather']
 
+def response(error, reactions, block, message):
+    response = {}
+    response['error'] = error
+    response['reactions'] = reactions
+    response['block'] = block
+    response['message'] = message
+    return response
+
+
 def help():
-    bot_return = {}
-    bot_return['error'] = False
-    bot_return['reactions'] = []
-    bot_return['block'] = True
-    bot_return['message'] = [
+    help_message = [
         {
             'type' : 'section' ,
             'text' : {
@@ -43,7 +48,7 @@ def help():
             }
         }    
     ]
-    return bot_return
+    return response(False, [], True, help_message)
     
 
 def command(args):
@@ -59,19 +64,25 @@ def command(args):
         json_data = requests.get(api_address).json()
 
         if json_data.get('cod') is not 200:
-            bot_return['error'] = True
-            bot_return['message'] = '\n*{}*: {}'.format(city, json_data['message']) 
-            bot_return['reactions'] = ['worried']
-            bot_return['block'] = False
-            return bot_return            
+            return response(True, ['worried'], False, '\n*{}*: {}'.format(city, json_data['message']))
 
-        bot_return['message'] = []
+        message = []
 
         alldata = True
         optionals = ['current', 'humidity', 'pressure', 'max', 'min']
         if any(word in args for word in optionals):
             alldata = False
 
+        section = {
+                    'type' : 'section' ,
+                    'text' : {
+                        'type' : 'mrkdwn' ,
+                        'text' : '*{}*'.format(city)
+                    }
+                } 
+        message.append(section)
+        section =   { "type": "divider" }
+        message.append(section)
         if 'current' in args or alldata:
             section = {
                         'type' : 'section' ,
@@ -80,7 +91,7 @@ def command(args):
                             'text' : 'Current temperature: *{}°C*'.format(json_data['main']['temp']) 
                         }
                     } 
-            bot_return['message'].append(section)
+            message.append(section)
 
         if 'humidity' in args or alldata:
             section = {
@@ -90,7 +101,7 @@ def command(args):
                             'text' : 'Humidity: *{}%*'.format(json_data['main']['humidity']) 
                         }
                     } 
-            bot_return['message'].append(section)
+            message.append(section)
 
         if 'pressure' in args or alldata:
             section = {
@@ -100,7 +111,7 @@ def command(args):
                             'text' : 'Pressure: *{}Pa*'.format(json_data['main']['pressure']) 
                         }
                     } 
-            bot_return['message'].append(section)
+            message.append(section)
 
 
         if 'max' in args or alldata:
@@ -111,7 +122,7 @@ def command(args):
                             'text' : 'Maximum temperature today: *{}°C*'.format(json_data['main']['temp_max']) 
                         }
                     } 
-            bot_return['message'].append(section)
+            message.append(section)
 
         if 'min' in args or alldata:
             section = {
@@ -121,13 +132,9 @@ def command(args):
                             'text' : 'Minimum temperature today: *{}°C*'.format(json_data['main']['temp_min']) 
                         }
                     } 
-            bot_return['message'].append(section)
+            message.append(section)
 
-
-        bot_return['block'] = True
-        bot_return['error'] = False
-        bot_return['reactions'] = ['thumbsup']
-        return bot_return
+        return response(False, ['thumbsup'], True, message)
 
 
 if __name__ == '__main__':

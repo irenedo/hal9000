@@ -6,7 +6,7 @@ import importlib
 import sys
 
 try:
-    with open("config.yml", 'r') as stream:
+    with open("./config/config.yml", 'r') as stream:
         try:
             cfg = safe_load(stream)
         except YAMLError as err:
@@ -18,6 +18,8 @@ except Exception as err:
 
 config = cfg['config']
 sys.path.append('./packages')
+
+import base
 
 try:
     pkg = {mod:importlib.import_module(mod) for mod in cfg['modules'].keys()}
@@ -32,7 +34,40 @@ slack_events_adapter = SlackEventAdapter(config['slack_signing_secret'], "/slack
 client = WebClient(config['slack_api_key'], timeout=30)
 
 
-# Example responder to greetings
+def call_module(modules, command, channel, thread_ts):
+    try:
+        if command[0] in modules.keys():
+            ret = modules[command[0]].command(command[1:])
+        else:
+            ret = base.command(command)
+    except Exception as err:
+        print("Error processing the message:{}\n{}".format(command,err))
+    else:
+        if ret['error']:
+            client.chat_postMessage(
+                channel=channel,
+                text="I have a problem processing your request:\n{}".format(ret['message']),
+            )
+        else:
+            if ret['block']:
+                client.chat_postMessage(
+                    channel=channel,
+                    blocks=dumps(ret['message'])
+                )                
+            else:
+                client.chat_postMessage(
+                    channel=channel,
+                    text=ret['message']
+                ) 
+        if ret['reactions'] is not []:
+            for reaction in ret['reactions']:
+                client.reactions_add(
+                  channel=channel,
+                  name=reaction,
+                  timestamp=thread_ts
+                )
+
+
 @slack_events_adapter.on("message")
 def handle_message(event_data):
     message = event_data["event"]
@@ -40,54 +75,11 @@ def handle_message(event_data):
     if message.get("subtype") is not None and message.get('channel_type') is not 'im':
         pass
     else:
-        command = message.get('text').split(" ")[0].lower()
-        user = message.get('user')
+        command = message.get('text').split(" ")
         channel = message.get('channel')
         thread_ts = message.get('ts')
-        if command in pkg.keys():
-            try:
-                ret = pkg[command].command(message.get('text').split(" ")[1:])
-            except Exception as err:
-                print("Problem calling the module {}\n{}".format(command,err))
-            else:
-                if ret['error']:
-                    client.chat_postMessage(
-                        channel=channel,
-                        text="Error:\n{}".format(ret['message']),
-                    )
-                else:
-                    if ret['block']:
-                        import pdb
-                        client.chat_postMessage(
-                            channel=channel,
-                            blocks=dumps(ret['message']),
-                            thread_ts=thread_ts
-                        )                
-                    else:
-                        client.chat_postMessage(
-                            channel=channel,
-                            text=ret['message'][0],
-                            thread_ts=thread_ts
-                        ) 
-                if ret['reactions'] is not []:
-                    for reaction in ret['reactions']:
-                        client.reactions_add(
-                          channel=channel,
-                          name=reaction,
-                          timestamp=thread_ts
-                        )
-        else:
-            channel = message.get('channel')
-            thread_ts = message.get('ts')
-            client.chat_postMessage(
-                channel=channel,
-                text="Sorry, I didn't understand you"
-            )
-            client.reactions_add(
-              channel=channel,
-              name="thinking_face",
-              timestamp=thread_ts
-            )
+        call_module(pkg, command, channel, thread_ts)
+
 
 # Error events
 @slack_events_adapter.on("error")
