@@ -1,6 +1,7 @@
 import requests
 from yaml import safe_load
 from sys import argv
+from pycountry import countries
 
 try:
     with open("./config/config.yml", 'r') as stream:
@@ -57,12 +58,14 @@ def command(args):
         return help()
     else:
         weather = {}
-        city = args[-1]
+        
+        stopwords = ['current', 'humidity', 'pressure', 'max', 'min']
+        resultwords  = [word for word in args if word.lower() not in stopwords]
+        city = ' '.join(resultwords)
         api_address = 'https://api.openweathermap.org/data/2.5/weather?q={}' \
                     '&appid={}' \
                     '&units=metric'.format(city, config['owappid'])
         json_data = requests.get(api_address).json()
-
         if json_data.get('cod') is not 200:
             return response(True, ['worried'], False, '\n*{}*: {}'.format(city, json_data['message']))
 
@@ -73,11 +76,23 @@ def command(args):
         if any(word in args for word in optionals):
             alldata = False
 
+        if ',' in city:
+            city = city.split(',')[0]
+
         section = {
                     'type' : 'section' ,
                     'text' : {
                         'type' : 'mrkdwn' ,
-                        'text' : '*{}*'.format(city)
+                        'text' : '\nCity: *{}*\nCountry: *{}*\nMap: http://www.google.com/maps/place/{},{}'.format(
+                            city.lower().title(),
+                            countries.get(alpha_2=json_data['sys']['country']).name.lower().title(),
+                            json_data['coord']['lat'],
+                            json_data['coord']['lon'])
+                    },
+                    "accessory": {
+                        "type": "image",
+                        "image_url": "http://openweathermap.org/img/w/{}.png".format(json_data['weather'][0]['icon']),
+                        "alt_text": json_data['weather'][0]['description']
                     }
                 } 
         message.append(section)
