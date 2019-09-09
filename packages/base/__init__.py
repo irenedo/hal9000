@@ -1,14 +1,18 @@
-from random import randint
+"""
+Manages all the messages that doesn't belong to any defined custom modules
+"""
+import answers
 
-greetings = ["hi", "hello", "hey", "helloo", "hellooo", "g morining", "gmorning", "good morning", "morning", "good day",
-            "good afternoon", "good evening", "greetings", "greeting", "good to see you", "its good seeing you",
-            "how are you", "how're you", "how are you doing", "how ya doin'", "how ya doin", "how is everything",
-            "how is everything going", "how's everything going", "how is you", "how's you", "how are things", "how're things",
-            "how is it going", "how's it going", "how's it goin'", "how's it goin", "how is life been treating you",
-            "how's life been treating you", "how have you been", "how've you been", "what is up", "what's up", "what is cracking",
-             "what's cracking", "what is good", "what's good", "what is happening", "what's happening", "what is new", "what's new"]
 
 def response(error, reactions, block, message):
+    """
+    Build the message answer to the core
+    :param error: True, False
+    :param reactions: List of reactions to the original message
+    :param block: Define if the message contains a slack block or a raw message (True/False)
+    :param message: Message body. If the block parameter is True, it has to be a proper slack block
+    :return: response
+    """
     response = {}
     response['error'] = error
     response['reactions'] = reactions
@@ -18,15 +22,29 @@ def response(error, reactions, block, message):
 
 
 def help():
+    """
+    In case the message is 'help', add the proper help answer from the base module
+    :return: response
+    """
     help_message = "This is the base help message"
     return response(False, [], False, help_message)
     
 
 def command(args):
-
+    """
+    Processes the message
+    :param args: Original message with words in a list
+    :return: Return the proper message in a dictionary ->
+            {
+            'error' : [True/False],
+            'reactions' [List of reactions to the message],
+            'block': [The returned message is a slack block: True/False],
+            'message': [Message body]
+            }
+    """
     if 'help' in args:
         return help()
     elif args[0].lower() in ['hello', 'hi', 'hey', 'good morning', 'good day', 'wassup']:
-        return response(False, ['smiley'], False, greetings[randint(0,len(greetings)-1)])
+        return response(False, ['smiley'], False, answers.answer('regards'))
     else:
-        return response(False, ['cry'], False, "Sorry, I didn't understand you")
+        return response(False, ['cry'], False, answers.answer('unknown'))
