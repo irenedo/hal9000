@@ -43,4 +43,4 @@ HAL9000 uses the port 3000 and ngrok must be started with the folowing command:
 Annotate the https address
 ![](https://raw.githubusercontent.com/irenedo/hal9000/master/images/ngrok.png)
 Add the https address followed by /slack/events in the Events Subscription URL of the slack app
-![](https://raw.githubusercontent.com/irenedo/hal9000/master/image
+![](https://raw.githubusercontent.com/irenedo/hal9000/master/images/ngrok_event_subscriptions.png)
