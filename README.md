@@ -7,7 +7,9 @@ Modular slack bot written en python. Originally intended to be used as a automat
 HAL9000 needs to use a slack app in your workspace with a bot user to exchange messages with it. This can be created from [https://api.slack.com/apps](https://api.slack.com/apps "https://api.slack.com/apps").
 
 HAL9000 uses the Events API. To use it it's necessary to activate the Event Subscriptions in the app
+
 ![](https://raw.githubusercontent.com/irenedo/hal9000/master/images/event_subscriptions.png)
+
 It needs to add the URL where the POST calls will be sent, and the subscription to **message.im** event name in the *Subscribe to Bot Events* section.
 For development purposes, we will use [ngrok](https://ngrok.com/ "ngrok") to communicate slack with our developement environment. Please, read the [ngrok section](#ngrok) for this procedure.
 
@@ -41,6 +43,9 @@ HAL9000 uses the port 3000 and ngrok must be started with the folowing command:
 # ngrok http 3000
 ```
 Annotate the https address
+
 ![](https://raw.githubusercontent.com/irenedo/hal9000/master/images/ngrok.png)
+
 Add the https address followed by /slack/events in the Events Subscription URL of the slack app
+
 ![](https://raw.githubusercontent.com/irenedo/hal9000/master/images/ngrok_event_subscriptions.png)
