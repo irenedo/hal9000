@@ -1,0 +1,7 @@
+---
+config:
+  slack_signing_secret: [Slack app signing secret]
+  slack_api_key: [Slack's bot api key]
+modules:
+  weather:
+    owappid: [openweather map api key]
