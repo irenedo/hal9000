@@ -82,5 +82,6 @@ modules:
     param2: value2
     ...
 ```
+
 ## Caveats
 HAL9000 it's in a early development phase and a lot of errors and/or suggestions will be founded, I appreciate your collaboration

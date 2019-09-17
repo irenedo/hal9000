@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-COPY hal9000.py requirements.txt /hal9000/
+COPY *.py requirements.txt /hal9000/
 COPY ./packages /hal9000/packages
 
 RUN apk add --no-cache python3 && \
