@@ -2,22 +2,15 @@
 Weather module for hal9000
 """
 import requests
-from yaml import safe_load
 from pycountry import countries
 
-# Read the weather module's config from config.yml
-try:
-    with open("./config/config.yml", 'r') as stream:
-        try:
-            cfg = safe_load(stream)
-        except YAMLError as err:
-            print("config.yml is not a proper yaml file\n{}".format(err))
-            sys.exit(2)
-except Exception as err:
-    print("Error openning the configuration file{}\n".format(err))
-    sys.exit(2)
-
-config = cfg['modules']['weather']
+def init(cfg):
+    """
+    Initialices the module
+    :param cfg: weather configuration in config.yml file
+    """
+    global owaappid
+    owaappid = cfg['owappid']
 
 
 def response(error, reactions, block, message):
@@ -90,7 +83,7 @@ def command(args):
         city = ' '.join(resultwords)
         api_address = 'https://api.openweathermap.org/data/2.5/weather?q={}' \
                       '&appid={}' \
-                      '&units=metric'.format(city, config['owappid'])
+                      '&units=metric'.format(city, owaappid)
         json_data = requests.get(api_address).json()
         if json_data.get('cod') is not 200:
             return response(True, ['worried'], False, '\n*{}*: {}'.format(city, json_data['message']))

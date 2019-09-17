@@ -1,3 +1,4 @@
+
 # HAL9000
 Modular slack bot written en python. Originally intended to be used as a automated operator to manage the infrastructure from a single trusted point with custom cli python scripts to execute commands, ansible playblooks, kubectl and so on.
 
@@ -49,3 +50,37 @@ Annotate the https address
 Add the https address followed by /slack/events in the Events Subscription URL of the slack app
 
 ![](https://raw.githubusercontent.com/irenedo/hal9000/master/images/ngrok_event_subscriptions.png)
+## Adding custom modules
+Custom modules are normal python modules inside _packages_ directory. To add your our modules you will have to create a new modules inside this directory.
+
+### Mandatory functions
+Some functions are mandatory:
+* **init**: A init function to initialize the module. It will receive the module configuration from the config file
+* **help**: A help message to send to slack in case the user asks for it. It has no parameters
+* **command**: It will process the message written by the user. It receives the message from slack without the module name
+
+### Returned message to slack
+The message processed by **help** and **command** functions must be returned in a dictionary with the following key,values:
+
+* **error**:  True/False. Warns slack that there was a problem processing the message
+* **reactions**: List of emojis to send to the original message written by the user
+* **message**: Message that the bot will write as answer to the command. It must be in a proper slack format and can be a message block, but in this case it has to be indicated wit the _block_ key
+* **block**: True/False. The message returned is in block format
+
+### Configuration
+All the parameters needed by the module must be added to the _config.yml_ file, inside the _config_ directory. This is a _yaml_file with a _modules_section where your will have to add the module name (must be exactly the same name as the custom module) with your own configuration that will be passed to the **init** function at start. Example:
+```yaml
+---
+config:
+  slack_signing_secret: [Slack app signing secret]
+  slack_api_key: [Slack's bot api key]
+modules:
+  weather:
+    owappid: [openweather map api key]
+  custom_module:
+    param1: value1
+    param2: value2
+    ...
+```
+## Caveats
+HAL9000 it's in a early development phase and a lot of errors and/or suggestions will be founded, I appreciate your collaboration

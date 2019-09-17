@@ -1,7 +1,7 @@
 """
 Manages all the messages that doesn't belong to any defined custom modules
 """
-import base.answers
+import packages.base.answers
 
 
 def response(error, reactions, block, message):

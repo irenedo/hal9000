@@ -1,44 +1,14 @@
 """
 HAL9000 core
 """
-
-from slackeventsapi import SlackEventAdapter
-from slack import WebClient
-from yaml import safe_load, YAMLError
 from json import dumps
-import importlib
-import sys
+import halinit
+import packages.base
 
-# import modules from the defined one in config.yml
-try:
-    with open("./config/config.yml", 'r') as stream:
-        try:
-            cfg = safe_load(stream)
-        except YAMLError as err:
-            print("config.yml is not a proper yaml file\n{}".format(err))
-            sys.exit(2)
-except Exception as err:
-    print("Error openning the configuration file{}\n".format(err))
-    sys.exit(2)
 
-config = cfg['config']
-sys.path.append('./packages')
-
-try:
-    pkg = {mod: importlib.import_module(mod) for mod in cfg['modules'].keys()}
-except Exception as err:
-    print("Error importing modules:\n{}".format(err))
-    sys.exit(2)
-
-# import base module
-import base
-
-# Our app's Slack Event Adapter for receiving actions via the Events API
-slack_events_adapter = SlackEventAdapter(config['slack_signing_secret'], "/slack/events")
-
-# Create a SlackClient for your bot to use for Web API requests
-client = WebClient(config['slack_api_key'], timeout=30)
-
+pkg, config = halinit.init_modules()
+slack_events_adapter = halinit.init_adapter(config['slack_signing_secret'], "/slack/events")
+client = halinit.init_client(config['slack_api_key'])
 
 def call_module(modules, command, channel, thread_ts):
     """
@@ -52,7 +22,7 @@ def call_module(modules, command, channel, thread_ts):
         if command[0].lower() in modules.keys():
             ret = modules[command[0].lower()].command(command[1:])
         else:
-            ret = base.command(command)
+            ret = packages.base.command(command)
     except Exception as err:
         print("Error processing the message:{}\n{}".format(command,err))
     else:
@@ -86,7 +56,6 @@ def handle_message(event_data):
     """
     Handles the received message from the Event API
     :param event_data: message data
-    :return:
     """
     message = event_data["event"]
     # If the incoming message contains "hi", then respond with a "Hello" message
@@ -109,9 +78,4 @@ def error_handler(message_error):
     print("ERROR: " + str(message_error))
 
 
-# Once we have our event listeners configured, we can start the
-# Flask server with the default `/events` endpoint on port 3000
-try:
-    slack_events_adapter.start(host='0.0.0.0', port=3000)
-except Exception as err:
-    print("Error starting the API server:\n{}".format(err))
+halinit.start_hal9000(slack_events_adapter)
